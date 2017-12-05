@@ -3,16 +3,19 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"time"
 )
 
 func main() {
-	client := &http.Client{}
+	fmt.Println("Fetching balances...")
+
+	client := &http.Client{Timeout: 10 * time.Second}
 
 	// Load balance checkers for each crypto-currency
 	balanceCheckers := loadConfigFromJSON()
-	done := make(chan *CryptoBalanceChecker)
 
 	// Kick off asynchronous balance check for each crypto-currency
+	done := make(chan *CryptoBalanceChecker)
 	for _, checker := range balanceCheckers {
 		go checker.GetAddressBalances(client, done)
 	}
