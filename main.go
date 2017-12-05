@@ -10,24 +10,23 @@ func main() {
 
 	// Load balance checkers for each crypto-currency
 	balanceCheckers := loadConfigFromJSON()
-	done := make([]chan bool, len(balanceCheckers))
+	done := make(chan *CryptoBalanceChecker)
 
 	// Kick off asynchronous balance check for each crypto-currency
-	for idx, checker := range balanceCheckers {
-		done[idx] = make(chan bool)
-
-		go checker.GetAddressBalances(client, done[idx])
+	for _, checker := range balanceCheckers {
+		go checker.GetAddressBalances(client, done)
 	}
 
 	// Wait for result and check for errors
 	var maxSymbolLength int
-	for idx, checker := range balanceCheckers {
-		if <-done[idx]; checker.Error != nil {
-			fmt.Println(checker.Error)
+	for index := 0; index < len(balanceCheckers); index++ {
+		completedCheck := <-done
+		if completedCheck.Error != nil {
+			fmt.Println(completedCheck.Error)
 			return
 		}
 
-		if length := len(checker.Symbol); length > maxSymbolLength {
+		if length := len(completedCheck.Symbol); length > maxSymbolLength {
 			maxSymbolLength = length
 		}
 	}
