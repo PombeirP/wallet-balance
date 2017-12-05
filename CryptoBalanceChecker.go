@@ -75,51 +75,44 @@ func (checker *CryptoBalanceChecker) getBlockchainAddressBalances(client *http.C
 	return
 }
 
+type etherscanResponseHeader struct {
+	Status  string `json:"status,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
 // getEtherscanAddressBalances retrieves the aggregate balances for the previously provided addresses
 func (checker *CryptoBalanceChecker) getEtherscanAddressBalances(client *http.Client, done chan<- bool) {
 	checker.Balance = 0.
 	checker.Error = nil
 
-	url := fmt.Sprintf("https://api.etherscan.io/api?module=account&action=balancemulti&address=%s&tag=latest", strings.Join(checker.Addresses, ","))
-	resp, err := client.Get(url)
-	if err != nil {
-		checker.Error = err
-		return
-	}
-
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		checker.Error = err
-		return
-	}
-
-	type etherscanAccountBalance struct {
+	type etherscanAccountBalanceResult struct {
 		Account string `json:"account,omitempty"`
 		Balance string `json:"balance,omitempty"`
 	}
 
-	type etherscanResponse struct {
-		Status  string                     `json:"status,omitempty"`
-		Message string                     `json:"message,omitempty"`
-		Result  []*etherscanAccountBalance `json:"result,omitempty"`
+	type etherscanAccountBalanceResponse struct {
+		etherscanResponseHeader
+		Result []*etherscanAccountBalanceResult `json:"result,omitempty"`
 	}
 
-	var response etherscanResponse
-	json.Unmarshal([]byte(body), &response)
+	url := fmt.Sprintf("https://api.etherscan.io/api?module=account&action=balancemulti&address=%s&tag=latest", strings.Join(checker.Addresses, ","))
+	response := &etherscanAccountBalanceResponse{}
+	responseReady := make(chan bool)
+	errors := make(chan error)
 
-	if response.Status != "1" {
-		checker.Error = fmt.Errorf(response.Message)
-		return
-	}
+	go fetchJSONResponse(client, url, response, responseReady, errors)
 
-	for _, responseEntry := range response.Result {
-		balance, err := strconv.ParseFloat(responseEntry.Balance, 64)
-		if err != nil {
-			checker.Error = err
-		} else {
-			checker.Balance += balance
+	select {
+	case err := <-errors:
+		checker.Error = err
+	case <-responseReady:
+		for _, responseEntry := range response.Result {
+			balance, err := strconv.ParseFloat(responseEntry.Balance, 64)
+			if err != nil {
+				checker.Error = err
+			} else {
+				checker.Balance += balance
+			}
 		}
 	}
 
@@ -138,44 +131,31 @@ func (checker *CryptoBalanceChecker) getEtherscanExchangeRate(client *http.Clien
 		return
 	}
 
-	url := fmt.Sprintf("https://api.etherscan.io/api?module=stats&action=ethprice&apikey=%s", checker.APIKey)
-	resp, err := client.Get(url)
-	if err != nil {
-		checker.Error = err
-		return
-	}
-
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		checker.Error = err
-		return
-	}
-
 	type etherscanEthPriceResult struct {
 		ETHUSD string `json:"ethusd,omitempty"`
 	}
 
-	type etherscanResponse struct {
-		Status  string                   `json:"status,omitempty"`
-		Message string                   `json:"message,omitempty"`
-		Result  *etherscanEthPriceResult `json:"result,omitempty"`
+	type etherscanEthPriceResponse struct {
+		etherscanResponseHeader
+		Result *etherscanEthPriceResult `json:"result,omitempty"`
 	}
+	response := &etherscanEthPriceResponse{}
+	responseReady := make(chan bool)
+	errors := make(chan error)
 
-	var response etherscanResponse
-	json.Unmarshal([]byte(body), &response)
+	url := fmt.Sprintf("https://api.etherscan.io/api?module=stats&action=ethprice&apikey=%s", checker.APIKey)
+	go fetchJSONResponse(client, url, response, responseReady, errors)
 
-	if response.Status != "1" {
-		checker.Error = fmt.Errorf(response.Message)
-		return
-	}
-
-	exchangeRate, err := strconv.ParseFloat(response.Result.ETHUSD, 64)
-	if err != nil {
+	select {
+	case err := <-errors:
 		checker.Error = err
-	} else {
-		checker.UsdExchangeRate = exchangeRate
+	case <-responseReady:
+		exchangeRate, err := strconv.ParseFloat(response.Result.ETHUSD, 64)
+		if err != nil {
+			checker.Error = err
+		} else {
+			checker.UsdExchangeRate = exchangeRate
+		}
 	}
 
 	done <- true
@@ -277,4 +257,36 @@ func fetchValueFromURL(client *http.Client, url string, result chan<- float64, e
 
 	result <- value
 	return
+}
+
+func fetchJSONResponse(client *http.Client, url string, response interface{}, responseReady chan<- bool, errors chan<- error) {
+	resp, err := client.Get(url)
+	if err != nil {
+		errors <- err
+		return
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		errors <- err
+		return
+	}
+
+	json.Unmarshal([]byte(body), response)
+
+	var untypedResponse map[string]interface{}
+	err = json.Unmarshal([]byte(body), &untypedResponse)
+	if err != nil {
+		errors <- err
+		return
+	}
+
+	if untypedResponse["status"].(string) != "1" {
+		errors <- fmt.Errorf(untypedResponse["message"].(string))
+		return
+	}
+
+	responseReady <- true
 }
