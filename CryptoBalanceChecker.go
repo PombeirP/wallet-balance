@@ -26,18 +26,18 @@ func NewCryptoBalanceChecker(symbol string, APIKey string, addresses ...string) 
 
 // GetAddressBalances retrieves the aggregate balances for the previously provided addresses
 func (checker *CryptoBalanceChecker) GetAddressBalances(client *http.Client, done chan<- *CryptoBalanceChecker) {
+	const targetCurrency = "usd"
+
 	balancesFetched := make(chan bool)
 	exchangeRateFetched := make(chan bool)
 	switch checker.Symbol {
 	case "BTC":
 		go checker.getBlockchainAddressBalances(client, balancesFetched)
-		go checker.getBlockchainExchangeRate(client, "usd", exchangeRateFetched)
-	case "DASH":
-		go checker.getCryptoidAddressBalances(client, "dash", balancesFetched)
-		go checker.getCryptoidExchangeRate(client, "dash", "usd", exchangeRateFetched)
-	case "LTC":
-		go checker.getCryptoidAddressBalances(client, "ltc", balancesFetched)
-		go checker.getCryptoidExchangeRate(client, "ltc", "usd", exchangeRateFetched)
+		go checker.getBlockchainExchangeRate(client, targetCurrency, exchangeRateFetched)
+	case "BCC", "DASH", "LTC", "UNO":
+		currency := strings.ToLower(checker.Symbol)
+		go checker.getCryptoidAddressBalances(client, currency, balancesFetched)
+		go checker.getCryptoidExchangeRate(client, currency, targetCurrency, exchangeRateFetched)
 	default:
 		checker.Error = fmt.Errorf("Unknown crypto-currency %s", checker.Symbol)
 		done <- checker
@@ -49,7 +49,7 @@ func (checker *CryptoBalanceChecker) GetAddressBalances(client *http.Client, don
 	done <- checker
 }
 
-// GetBlockchainAddressBalances retrieves the aggregate balances for the previously provided addresses
+// getBlockchainAddressBalances retrieves the aggregate balances for the previously provided addresses
 func (checker *CryptoBalanceChecker) getBlockchainAddressBalances(client *http.Client, done chan<- bool) {
 	balances := make(chan float64)
 	errors := make(chan error)
