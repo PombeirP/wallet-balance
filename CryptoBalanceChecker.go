@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -30,10 +31,14 @@ func (checker *CryptoBalanceChecker) GetAddressBalances(client *http.Client, don
 
 	balancesFetched := make(chan bool)
 	exchangeRateFetched := make(chan bool)
+
 	switch checker.Symbol {
 	case "BTC":
 		go checker.getBlockchainAddressBalances(client, balancesFetched)
 		go checker.getBlockchainExchangeRate(client, targetCurrency, exchangeRateFetched)
+	case "ETH":
+		go checker.getEtherscanAddressBalances(client, balancesFetched)
+		go checker.getEtherscanExchangeRate(client, targetCurrency, exchangeRateFetched)
 	case "BCC", "DASH", "LTC", "UNO":
 		currency := strings.ToLower(checker.Symbol)
 		go checker.getCryptoidAddressBalances(client, currency, balancesFetched)
@@ -70,6 +75,112 @@ func (checker *CryptoBalanceChecker) getBlockchainAddressBalances(client *http.C
 	return
 }
 
+// getEtherscanAddressBalances retrieves the aggregate balances for the previously provided addresses
+func (checker *CryptoBalanceChecker) getEtherscanAddressBalances(client *http.Client, done chan<- bool) {
+	checker.Balance = 0.
+	checker.Error = nil
+
+	url := fmt.Sprintf("https://api.etherscan.io/api?module=account&action=balancemulti&address=%s&tag=latest", strings.Join(checker.Addresses, ","))
+	resp, err := client.Get(url)
+	if err != nil {
+		checker.Error = err
+		return
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		checker.Error = err
+		return
+	}
+
+	type etherscanAccountBalance struct {
+		Account string `json:"account,omitempty"`
+		Balance string `json:"balance,omitempty"`
+	}
+
+	type etherscanResponse struct {
+		Status  string                     `json:"status,omitempty"`
+		Message string                     `json:"message,omitempty"`
+		Result  []*etherscanAccountBalance `json:"result,omitempty"`
+	}
+
+	var response etherscanResponse
+	json.Unmarshal([]byte(body), &response)
+
+	if response.Status != "1" {
+		checker.Error = fmt.Errorf(response.Message)
+		return
+	}
+
+	for _, responseEntry := range response.Result {
+		balance, err := strconv.ParseFloat(responseEntry.Balance, 64)
+		if err != nil {
+			checker.Error = err
+		} else {
+			checker.Balance += balance
+		}
+	}
+
+	done <- true
+
+	return
+}
+
+// getEtherscanExchangeRate retrieves the exchange rate for BTC in `targetCurrency`
+func (checker *CryptoBalanceChecker) getEtherscanExchangeRate(client *http.Client, targetCurrency string, done chan<- bool) {
+	checker.UsdExchangeRate = 0.
+
+	if targetCurrency != "usd" {
+		checker.Error = fmt.Errorf("%s is not supported as target currency for ETH, only USD at the moment")
+		done <- true
+		return
+	}
+
+	url := fmt.Sprintf("https://api.etherscan.io/api?module=stats&action=ethprice&apikey=%s", checker.APIKey)
+	resp, err := client.Get(url)
+	if err != nil {
+		checker.Error = err
+		return
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		checker.Error = err
+		return
+	}
+
+	type etherscanEthPriceResult struct {
+		ETHUSD string `json:"ethusd,omitempty"`
+	}
+
+	type etherscanResponse struct {
+		Status  string                   `json:"status,omitempty"`
+		Message string                   `json:"message,omitempty"`
+		Result  *etherscanEthPriceResult `json:"result,omitempty"`
+	}
+
+	var response etherscanResponse
+	json.Unmarshal([]byte(body), &response)
+
+	if response.Status != "1" {
+		checker.Error = fmt.Errorf(response.Message)
+		return
+	}
+
+	exchangeRate, err := strconv.ParseFloat(response.Result.ETHUSD, 64)
+	if err != nil {
+		checker.Error = err
+	} else {
+		checker.UsdExchangeRate = exchangeRate
+	}
+
+	done <- true
+}
+
 // GetCryptoidAddressBalances retrieves the aggregate balances for the previously provided addresses
 func (checker *CryptoBalanceChecker) getCryptoidAddressBalances(client *http.Client, currency string, done chan<- bool) {
 	checker.Error = nil
@@ -87,7 +198,6 @@ func (checker *CryptoBalanceChecker) getCryptoidAddressBalances(client *http.Cli
 		select {
 		case err := <-errors:
 			checker.Error = err
-			break
 		case balance := <-balances:
 			checker.Balance += balance
 		}
