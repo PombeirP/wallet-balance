@@ -54,27 +54,6 @@ func (checker *CryptoBalanceChecker) GetAddressBalances(client *http.Client, don
 	done <- checker
 }
 
-// getBlockchainAddressBalances retrieves the aggregate balances for the previously provided addresses
-func (checker *CryptoBalanceChecker) getBlockchainAddressBalances(client *http.Client, done chan<- bool) {
-	balances := make(chan float64)
-	errors := make(chan error)
-
-	url := fmt.Sprintf("https://blockchain.info/q/addressbalance/%s", strings.Join(checker.Addresses, "%7C" /*|*/))
-	go fetchValueFromURL(client, url, balances, errors)
-
-	select {
-	case err := <-errors:
-		checker.Error = err
-		break
-	case balance := <-balances:
-		checker.Balance = balance / 100000000.
-	}
-
-	done <- true
-
-	return
-}
-
 type etherscanResponseHeader struct {
 	Status  string `json:"status,omitempty"`
 	Message string `json:"message,omitempty"`
@@ -204,6 +183,27 @@ func (checker *CryptoBalanceChecker) getCryptoidExchangeRate(client *http.Client
 		break
 	case exchangeRate := <-exchangeRates:
 		checker.UsdExchangeRate = exchangeRate
+	}
+
+	done <- true
+
+	return
+}
+
+// getBlockchainAddressBalances retrieves the aggregate balances for the previously provided addresses
+func (checker *CryptoBalanceChecker) getBlockchainAddressBalances(client *http.Client, done chan<- bool) {
+	balances := make(chan float64)
+	errors := make(chan error)
+
+	url := fmt.Sprintf("https://blockchain.info/q/addressbalance/%s", strings.Join(checker.Addresses, "%7C" /*|*/))
+	go fetchValueFromURL(client, url, balances, errors)
+
+	select {
+	case err := <-errors:
+		checker.Error = err
+		break
+	case balance := <-balances:
+		checker.Balance = balance / 100000000.
 	}
 
 	done <- true

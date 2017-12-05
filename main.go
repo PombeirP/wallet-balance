@@ -34,10 +34,10 @@ func main() {
 	// Print out balances
 	totalUsdBalance := 0.
 	for _, checker := range balanceCheckers {
-		format := fmt.Sprintf("%s balance: %%%df %%%ds (in USD: %%7.2f$)\n", checker.Symbol, 13-len(checker.Symbol), -maxSymbolLength)
+		format := fmt.Sprintf("%s balance: %%%df %%%ds (in USD: %%7.2f$, 1%%%ds = %%.2f$)\n", checker.Symbol, 13-len(checker.Symbol), -maxSymbolLength, -maxSymbolLength)
 		usdBalance := checker.Balance * checker.UsdExchangeRate
 		totalUsdBalance += usdBalance
-		fmt.Printf(format, checker.Balance, checker.Symbol, usdBalance)
+		fmt.Printf(format, checker.Balance, checker.Symbol, usdBalance, checker.Symbol, checker.UsdExchangeRate)
 	}
 	fmt.Println("------------------------------------------")
 	fmt.Printf("USD balance: %.2f$\n", totalUsdBalance)
