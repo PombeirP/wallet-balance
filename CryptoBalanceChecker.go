@@ -27,11 +27,11 @@ func NewCryptoBalanceChecker(symbol string, APIKey string, addresses ...string) 
 // GetAddressBalances retrieves the aggregate balances for the previously provided addresses
 func (checker *CryptoBalanceChecker) GetAddressBalances(client *http.Client, done chan<- bool) {
 	balancesFetched := make(chan bool)
-	exchangeRateFetched := make(chan bool, 1)
+	exchangeRateFetched := make(chan bool)
 	switch checker.Symbol {
 	case "BTC":
 		go checker.getBlockchainAddressBalances(client, balancesFetched)
-		exchangeRateFetched <- true
+		go checker.getBlockchainExchangeRate(client, "usd", exchangeRateFetched)
 	case "DASH":
 		go checker.getCryptoidAddressBalances(client, "dash", balancesFetched)
 		go checker.getCryptoidExchangeRate(client, "dash", "usd", exchangeRateFetched)
@@ -98,7 +98,7 @@ func (checker *CryptoBalanceChecker) getCryptoidAddressBalances(client *http.Cli
 	return
 }
 
-// getCryptoidExchangeRate retrieves the aggregate balances for the previously provided addresses
+// getCryptoidExchangeRate retrieves the exchange rate for `currency` in `targetCurrency`
 func (checker *CryptoBalanceChecker) getCryptoidExchangeRate(client *http.Client, currency string, targetCurrency string, done chan<- bool) {
 	checker.UsdExchangeRate = 0.
 
@@ -114,6 +114,29 @@ func (checker *CryptoBalanceChecker) getCryptoidExchangeRate(client *http.Client
 		break
 	case exchangeRate := <-exchangeRates:
 		checker.UsdExchangeRate = exchangeRate
+	}
+
+	done <- true
+
+	return
+}
+
+// getBlockchainExchangeRate retrieves the exchange rate for BTC in `targetCurrency`
+func (checker *CryptoBalanceChecker) getBlockchainExchangeRate(client *http.Client, targetCurrency string, done chan<- bool) {
+	checker.UsdExchangeRate = 0.
+
+	exchangeRates := make(chan float64)
+	errors := make(chan error)
+
+	url := fmt.Sprintf("https://blockchain.info/tobtc?currency=%s&value=1", targetCurrency)
+	go fetchValueFromURL(client, url, exchangeRates, errors)
+
+	select {
+	case err := <-errors:
+		checker.Error = err
+		break
+	case exchangeRate := <-exchangeRates:
+		checker.UsdExchangeRate = 1. / exchangeRate
 	}
 
 	done <- true
