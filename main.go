@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
 )
 
@@ -28,6 +29,11 @@ func main() {
 	<-done
 
 	// Print out balances
+	slice.Sort(balanceCheckers, func(i, j int) bool {
+		bi, bj := balanceCheckers[i], balanceCheckers[j]
+		return bi.Balance*bi.UsdExchangeRate > bj.Balance*bj.UsdExchangeRate
+	})
+
 	totalUsdBalance := 0.
 	usdColor := color.New(color.FgHiGreen).SprintFunc()
 	cryptoColor := color.New(color.FgHiCyan).SprintFunc()
