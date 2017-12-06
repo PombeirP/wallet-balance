@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 func main() {
@@ -27,18 +29,31 @@ func main() {
 
 	// Print out balances
 	totalUsdBalance := 0.
+	usdColor := color.New(color.FgHiGreen).SprintFunc()
+	cryptoColor := color.New(color.FgHiCyan).SprintFunc()
+	errorColor := color.New(color.FgHiRed).SprintFunc()
 	for _, checker := range balanceCheckers {
 		if checker.Error != nil {
-			fmt.Printf("%s: %s\n", checker.Symbol, checker.Error)
+			fmt.Fprintf(color.Output, "%s: %s\n", checker.Symbol, errorColor(checker.Error))
 		} else {
-			format := fmt.Sprintf("%s balance: %%%df %%%ds (in USD: %%7.2f$, 1%%%ds = %%.2f$)\n", checker.Symbol, 13-len(checker.Symbol), -maxSymbolLength, -maxSymbolLength)
 			usdBalance := checker.Balance * checker.UsdExchangeRate
 			totalUsdBalance += usdBalance
-			fmt.Printf(format, checker.Balance, checker.Symbol, usdBalance, checker.Symbol, checker.UsdExchangeRate)
+
+			cryptoBalanceString := fmt.Sprintf(fmt.Sprintf("%%%df", 13-len(checker.Symbol)), checker.Balance)
+			cryptoTickerSymbolString := fmt.Sprintf(fmt.Sprintf("%%%ds", -maxSymbolLength), checker.Symbol)
+
+			fmt.Fprintf(color.Output, "%s balance: %s %s (in USD: %s, %s%s = %s)\n",
+				checker.Symbol,
+				cryptoColor(cryptoBalanceString),
+				cryptoTickerSymbolString,
+				usdColor(fmt.Sprintf("%7.2f$", usdBalance)),
+				cryptoColor("1"),
+				cryptoTickerSymbolString,
+				usdColor(fmt.Sprintf("%.2f$", checker.UsdExchangeRate)))
 		}
 	}
 	fmt.Println("------------------------------------------")
-	fmt.Printf("USD balance: %.2f$\n", totalUsdBalance)
+	fmt.Fprintf(color.Output, "USD balance: %s\n", usdColor(fmt.Sprintf("%.2f$", totalUsdBalance)))
 }
 
 func fetchBalances(balanceCheckers []*CryptoBalanceChecker, workerCount int, done chan<- bool) {
