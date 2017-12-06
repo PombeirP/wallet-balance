@@ -8,9 +8,9 @@ import (
 )
 
 type cryptoBalanceCheckerConfig struct {
-	Symbol    string   `json:"symbol,omitempty"`
-	Addresses []string `json:"addresses,omitempty"`
-	APIKey    string   `json:"api_key,omitempty"`
+	Symbol    cryptoCurrencyTickerSymbol `json:"symbol,omitempty"`
+	Addresses []string                   `json:"addresses,omitempty"`
+	APIKey    string                     `json:"api_key,omitempty"`
 }
 
 func loadConfigFromJSON() []*CryptoBalanceChecker {

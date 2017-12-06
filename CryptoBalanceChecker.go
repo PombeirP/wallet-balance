@@ -10,9 +10,15 @@ import (
 	"strings"
 )
 
+// cryptoCurrencyTickerSymbol represents the ticker symbol for a crypto-currency
+type cryptoCurrencyTickerSymbol string
+
+// cryptoCurrencyMap maps cryptoCurrencyTickerSymbol values to internal symbols used by external APIs
+var cryptoCurrencyMap map[cryptoCurrencyTickerSymbol]string
+
 // CryptoBalanceChecker provides functionality to check for the aggregate balance of crypto-currency addresses
 type CryptoBalanceChecker struct {
-	Symbol          string
+	Symbol          cryptoCurrencyTickerSymbol
 	Addresses       []string
 	APIKey          string
 	UsdExchangeRate float64
@@ -21,8 +27,19 @@ type CryptoBalanceChecker struct {
 	Error   error
 }
 
+func init() {
+	cryptoCurrencyMap = map[cryptoCurrencyTickerSymbol]string{
+		btc:  "btc",
+		eth:  "eth",
+		ltc:  "ltc",
+		dash: "dash",
+		uno:  "uno",
+		bcc:  "bcc",
+	}
+}
+
 // NewCryptoBalanceChecker creates a crypto-currency balance checker instance for given crypto-currency addresses
-func NewCryptoBalanceChecker(symbol string, APIKey string, addresses ...string) *CryptoBalanceChecker {
+func NewCryptoBalanceChecker(symbol cryptoCurrencyTickerSymbol, APIKey string, addresses ...string) *CryptoBalanceChecker {
 	return &CryptoBalanceChecker{symbol, addresses, APIKey, 0., 0., nil}
 }
 
@@ -41,7 +58,7 @@ func (checker *CryptoBalanceChecker) GetAddressBalances(client *http.Client, don
 		go checker.getEtherscanAddressBalances(client, balancesFetched)
 		go checker.getEtherscanExchangeRate(client, targetCurrency, exchangeRateFetched)
 	case "BCC", "DASH", "LTC", "UNO":
-		currency := strings.ToLower(checker.Symbol)
+		currency := cryptoCurrencyMap[checker.Symbol]
 		go checker.getCryptoidAddressBalances(client, currency, balancesFetched)
 		go checker.getCryptoidExchangeRate(client, currency, targetCurrency, exchangeRateFetched)
 	default:
