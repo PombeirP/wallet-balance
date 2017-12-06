@@ -3,11 +3,16 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"runtime"
 	"time"
 
 	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
 )
+
+func init() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+}
 
 func main() {
 	fmt.Println("Fetching balances...")
