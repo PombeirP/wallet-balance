@@ -13,6 +13,15 @@ import (
 // cryptoCurrencyTickerSymbol represents the ticker symbol for a crypto-currency
 type cryptoCurrencyTickerSymbol string
 
+const (
+	btc  cryptoCurrencyTickerSymbol = "BTC"
+	eth  cryptoCurrencyTickerSymbol = "ETH"
+	ltc  cryptoCurrencyTickerSymbol = "LTC"
+	dash cryptoCurrencyTickerSymbol = "DASH"
+	uno  cryptoCurrencyTickerSymbol = "UNO"
+	bcc  cryptoCurrencyTickerSymbol = "BCC"
+)
+
 // cryptoCurrencyMap maps cryptoCurrencyTickerSymbol values to internal symbols used by external APIs
 var cryptoCurrencyMap map[cryptoCurrencyTickerSymbol]string
 
@@ -51,13 +60,13 @@ func (checker *CryptoBalanceChecker) GetAddressBalances(client *http.Client, don
 	exchangeRateFetched := make(chan bool)
 
 	switch checker.Symbol {
-	case "BTC":
+	case btc:
 		go checker.getBlockchainAddressBalances(client, balancesFetched)
 		go checker.getBlockchainExchangeRate(client, targetCurrency, exchangeRateFetched)
-	case "ETH":
+	case eth:
 		go checker.getEtherscanAddressBalances(client, balancesFetched)
 		go checker.getEtherscanExchangeRate(client, targetCurrency, exchangeRateFetched)
-	case "BCC", "DASH", "LTC", "UNO":
+	case bcc, dash, ltc, uno:
 		currency := cryptoCurrencyMap[checker.Symbol]
 		go checker.getCryptoidAddressBalances(client, currency, balancesFetched)
 		go checker.getCryptoidExchangeRate(client, currency, targetCurrency, exchangeRateFetched)
