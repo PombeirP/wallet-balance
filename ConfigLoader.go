@@ -2,8 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 )
 
@@ -13,19 +12,36 @@ type cryptoBalanceCheckerConfig struct {
 	APIKey    string                     `json:"api_key,omitempty"`
 }
 
-func loadConfigFromJSON() []*CryptoBalanceChecker {
-	raw, err := ioutil.ReadFile("./config.json")
+func loadConfigFromJSONFile(path string) ([]*CryptoBalanceChecker, error) {
+	file, err := os.Open(path)
 	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
+		return nil, err
 	}
 
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	raw := make([]byte, info.Size())
+	_, err = io.ReadFull(file, raw)
+	if err != nil {
+		return nil, err
+	}
+
+	return loadConfigFromJSON(raw), nil
+}
+
+func loadConfigFromJSON(rawJSON []byte) (checker []*CryptoBalanceChecker) {
 	var currencies []*cryptoBalanceCheckerConfig
-	json.Unmarshal(raw, &currencies)
+	json.Unmarshal(rawJSON, &currencies)
 
-	c := make([]*CryptoBalanceChecker, len(currencies))
+	checker = make([]*CryptoBalanceChecker, len(currencies))
 	for idx, checkerConfig := range currencies {
-		c[idx] = NewCryptoBalanceChecker(checkerConfig.Symbol, checkerConfig.APIKey, checkerConfig.Addresses...)
+		checker[idx] = NewCryptoBalanceChecker(checkerConfig.Symbol, checkerConfig.APIKey, checkerConfig.Addresses...)
 	}
-	return c
+
+	return checker
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"runtime"
 	"time"
 
@@ -18,7 +19,11 @@ func main() {
 	fmt.Println("Fetching balances...")
 
 	// Load balance checkers for each crypto-currency
-	balanceCheckers := loadConfigFromJSON()
+	balanceCheckers, err := loadConfigFromJSONFile("./config.json")
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
 
 	done := make(chan bool)
 	go fetchBalances(balanceCheckers, 3, done)
