@@ -190,8 +190,6 @@ func (checker *CryptoBalanceChecker) getCryptoidAddressBalances(client *http.Cli
 	}
 
 	done <- true
-
-	return
 }
 
 // getCryptoidExchangeRate retrieves the exchange rate for `currency` in `targetCurrency`
@@ -213,8 +211,6 @@ func (checker *CryptoBalanceChecker) getCryptoidExchangeRate(client *http.Client
 	}
 
 	done <- true
-
-	return
 }
 
 // getBlockchainAddressBalances retrieves the aggregate balances for the previously provided addresses
@@ -234,8 +230,6 @@ func (checker *CryptoBalanceChecker) getBlockchainAddressBalances(client *http.C
 	}
 
 	done <- true
-
-	return
 }
 
 // getBlockchainExchangeRate retrieves the exchange rate for BTC in `targetCurrency`
@@ -257,8 +251,6 @@ func (checker *CryptoBalanceChecker) getBlockchainExchangeRate(client *http.Clie
 	}
 
 	done <- true
-
-	return
 }
 
 func fetchValueFromURL(client *http.Client, url string, resultChan chan<- float64, errorsChan chan<- error) {
@@ -276,14 +268,24 @@ func fetchValueFromURL(client *http.Client, url string, resultChan chan<- float6
 		return
 	}
 
-	value, err := strconv.ParseFloat(string(body), 64)
+	bodyString := string(body)
+	if resp.StatusCode >= 300 {
+		if len(bodyString) > 0 {
+			errorsChan <- errors.New(bodyString)
+		} else {
+			errorsChan <- errors.New(resp.Status)
+		}
+
+		return
+	}
+
+	value, err := strconv.ParseFloat(bodyString, 64)
 	if err != nil {
 		errorsChan <- err
 		return
 	}
 
 	resultChan <- value
-	return
 }
 
 func fetchJSONResponse(client *http.Client, url string, response interface{}, responseReadyChan chan<- bool, errorsChan chan<- error) {
