@@ -1,26 +1,43 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestLoadConfigFromJSON(t *testing.T) {
-	config := loadConfigFromJSON([]byte("[{\"symbol\": \"BTC\", \"addresses\": [\"a\"]},{\"symbol\": \"DASH\",\"addresses\": [\"b\",\"c\"],\"api_key\": \"apikey1\"},{\"symbol\": \"ETH\",\"addresses\": [\"d\"],\"api_key\": \"apikey2\"}]"))
+	cases := []struct {
+		name     string
+		json     string
+		expected []cryptoBalanceCheckerConfig
+	}{
+		{"case #1", `[{"symbol": "BTC", "addresses": ["a"]},{"symbol": "DASH","addresses": ["b","c"],"api_key": "apikey1"},{"symbol": "ETH","addresses": ["d"],"api_key": "apikey2"}]`,
+			[]cryptoBalanceCheckerConfig{
+				{btc, []string{"a"}, ""},
+				{dash, []string{"b", "c"}, "apikey1"},
+				{eth, []string{"d"}, "apikey2"},
+			},
+		},
+		{"case #2", `[{"symbol": "UNO", "addresses": ["asdkfhjkadfghds"]}]`,
+			[]cryptoBalanceCheckerConfig{
+				{uno, []string{"asdkfhjkadfghds"}, ""},
+			},
+		},
+	}
 
-	require.NotNil(t, config)
-	require.Len(t, config, 3, "expected 3 crypto-currencies")
+	for _, testCase := range cases {
+		testCaseName := fmt.Sprintf("Test case %s", testCase.name)
+		config := loadConfigFromJSON([]byte(testCase.json))
 
-	require.Equal(t, btc, config[0].Symbol)
-	require.Equal(t, dash, config[1].Symbol)
-	require.Equal(t, eth, config[2].Symbol)
+		require.NotNil(t, config, testCaseName)
+		require.Len(t, config, len(testCase.expected), "%s: expected %d crypto-currencies", testCaseName, len(testCase.expected))
 
-	require.Empty(t, config[0].APIKey)
-	require.Equal(t, "apikey1", config[1].APIKey)
-	require.Equal(t, "apikey2", config[2].APIKey)
-
-	require.EqualValues(t, []string{"a"}, config[0].Addresses)
-	require.EqualValues(t, []string{"b", "c"}, config[1].Addresses)
-	require.EqualValues(t, []string{"d"}, config[2].Addresses)
+		for idx, expected := range testCase.expected {
+			require.Equal(t, expected.Symbol, config[idx].Symbol, testCaseName)
+			require.Equal(t, expected.APIKey, config[idx].APIKey, testCaseName)
+			require.EqualValues(t, expected.Addresses, config[idx].Addresses, testCaseName)
+		}
+	}
 }
