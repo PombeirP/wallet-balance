@@ -2,7 +2,6 @@ package fetchers
 
 import (
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 )
@@ -13,7 +12,7 @@ type EtherscanInfoFetcher struct {
 }
 
 // NewEtherscanInfoFetcher creates an instance of EtherscanInfoFetcher from an HTTP client instance
-func NewEtherscanInfoFetcher(client *http.Client) *EtherscanInfoFetcher {
+func NewEtherscanInfoFetcher(client HTTPClient) *EtherscanInfoFetcher {
 	apiFetcher := NewEtherscanJSONFetcher(client)
 	return &EtherscanInfoFetcher{apiFetcher}
 }

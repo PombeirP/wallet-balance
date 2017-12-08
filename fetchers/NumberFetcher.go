@@ -3,7 +3,6 @@ package fetchers
 import (
 	"errors"
 	"io/ioutil"
-	"net/http"
 	"strconv"
 )
 
@@ -12,13 +11,13 @@ type NumberFetcher interface {
 	Fetch(url string, resultChan chan<- float64, errorsChan chan<- error)
 }
 
-// WebNumberFetcher implements the NumberFetcher interface for an http.Client
+// WebNumberFetcher implements the NumberFetcher interface for an HTTPClient
 type WebNumberFetcher struct {
-	client *http.Client
+	client HTTPClient
 }
 
 // NewWebNumberFetcher returns an initialized instance of WebNumberFetcher
-func NewWebNumberFetcher(client *http.Client) *WebNumberFetcher {
+func NewWebNumberFetcher(client HTTPClient) *WebNumberFetcher {
 	return &WebNumberFetcher{client}
 }
 

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"net/http"
 )
 
 // JSONFetcher defines an interface for fetching JSON responses from web APIs
@@ -12,13 +11,13 @@ type JSONFetcher interface {
 	Fetch(url string, response interface{}, responseReadyChan chan<- bool, errorsChan chan<- error)
 }
 
-// EtherscanJSONFetcher implements the JSONFetcher interface for an http.Client to parse an etherscan.io response
+// EtherscanJSONFetcher implements the JSONFetcher interface for an HTTPClient to parse an etherscan.io response
 type EtherscanJSONFetcher struct {
-	client *http.Client
+	client HTTPClient
 }
 
 // NewEtherscanJSONFetcher returns an initialized instance of EtherscanJSONFetcher
-func NewEtherscanJSONFetcher(client *http.Client) *EtherscanJSONFetcher {
+func NewEtherscanJSONFetcher(client HTTPClient) *EtherscanJSONFetcher {
 	return &EtherscanJSONFetcher{client}
 }
 

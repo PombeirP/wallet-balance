@@ -2,7 +2,6 @@ package fetchers
 
 import (
 	"fmt"
-	"net/http"
 )
 
 // CryptoidInfoFetcher fetches the balance and exchange rate of several altcoins on chainz.cryptoid.info
@@ -12,7 +11,7 @@ type CryptoidInfoFetcher struct {
 }
 
 // NewCryptoidInfoFetcher creates an instance of CryptoidInfoFetcher for a specified altcoin from an HTTP client instance
-func NewCryptoidInfoFetcher(currency string, client *http.Client) *CryptoidInfoFetcher {
+func NewCryptoidInfoFetcher(currency string, client HTTPClient) *CryptoidInfoFetcher {
 	numberFetcher := NewWebNumberFetcher(client)
 	return &CryptoidInfoFetcher{currency, numberFetcher}
 }

@@ -2,7 +2,6 @@ package fetchers
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 )
 
@@ -12,7 +11,7 @@ type BlockchainInfoFetcher struct {
 }
 
 // NewBlockchainInfoFetcher creates an instance of BlockchainInfoFetcher from an HTTP client instance
-func NewBlockchainInfoFetcher(client *http.Client) *BlockchainInfoFetcher {
+func NewBlockchainInfoFetcher(client HTTPClient) *BlockchainInfoFetcher {
 	numberFetcher := NewWebNumberFetcher(client)
 	return &BlockchainInfoFetcher{numberFetcher}
 }

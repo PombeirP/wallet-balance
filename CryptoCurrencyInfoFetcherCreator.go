@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/PombeirP/wallet-balance/fetchers"
 )
@@ -28,11 +27,11 @@ type CryptoCurrencyInfoFetcherCreator interface {
 
 // CryptoCurrencyInfoHTTPFetcherCreator implements a factory that creates a fetchers.CryptoCurrencyInfoFetcher based on a currency symbol and an HTTP client
 type CryptoCurrencyInfoHTTPFetcherCreator struct {
-	client *http.Client
+	client fetchers.HTTPClient
 }
 
 // NewCryptoCurrencyInfoHTTPFetcherCreator creates a CryptoCurrencyInfoHTTPFetcherCreator factory object
-func NewCryptoCurrencyInfoHTTPFetcherCreator(client *http.Client) *CryptoCurrencyInfoHTTPFetcherCreator {
+func NewCryptoCurrencyInfoHTTPFetcherCreator(client fetchers.HTTPClient) *CryptoCurrencyInfoHTTPFetcherCreator {
 	return &CryptoCurrencyInfoHTTPFetcherCreator{client}
 }
 
