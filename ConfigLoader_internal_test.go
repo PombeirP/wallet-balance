@@ -23,10 +23,4 @@ func TestLoadConfigFromJSON(t *testing.T) {
 	require.EqualValues(t, []string{"a"}, config[0].Addresses)
 	require.EqualValues(t, []string{"b", "c"}, config[1].Addresses)
 	require.EqualValues(t, []string{"d"}, config[2].Addresses)
-
-	for idx, c := range config {
-		require.Emptyf(t, c.Balance, "Item #%d should have zero balance", idx)
-		require.Emptyf(t, c.UsdExchangeRate, "Item #%d should have zero UsdExchangeRate", idx)
-		require.Emptyf(t, c.Error, "Item #%d should have nil error", idx)
-	}
 }

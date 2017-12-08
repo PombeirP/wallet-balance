@@ -18,85 +18,92 @@ func init() {
 func main() {
 	fmt.Println("Fetching balances...")
 
-	// Load balance checkers for each crypto-currency
-	balanceCheckers, err := loadConfigFromJSONFile("./config.json")
+	// Load crypto-currency accounts
+	currenciesConfig, err := loadConfigFromJSONFile("./config.json")
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 
-	done := make(chan bool)
-	go fetchBalances(balanceCheckers, 3, done)
+	results := make(chan *CryptoCurrencyBalanceReport, len(currenciesConfig))
+	client := &http.Client{Timeout: 10 * time.Second}
+	currencyInfoFetcherCreator := NewCryptoCurrencyInfoHTTPFetcherCreator(client)
+	go fetchBalanceReports(currenciesConfig, currencyInfoFetcherCreator, 3, results)
 
-	// Calculate max symbol length for formatting
-	var maxSymbolLength int
-	for _, checker := range balanceCheckers {
-		if length := len(checker.Symbol); length > maxSymbolLength {
-			maxSymbolLength = length
-		}
+	// Wait for results
+	var reports []*CryptoCurrencyBalanceReport
+	for _ = range currenciesConfig {
+		reports = append(reports, <-results)
 	}
 
-	<-done
-
-	// Print out balances
-	slice.Sort(balanceCheckers, func(i, j int) bool {
-		bi, bj := balanceCheckers[i], balanceCheckers[j]
+	// Sort balances
+	slice.Sort(reports, func(i, j int) bool {
+		bi, bj := reports[i], reports[j]
 		return bi.Balance*bi.UsdExchangeRate > bj.Balance*bj.UsdExchangeRate
 	})
 
-	totalUsdBalance := 0.
-	usdColor := color.New(color.FgHiGreen).SprintFunc()
-	cryptoColor := color.New(color.FgHiCyan).SprintFunc()
-	errorColor := color.New(color.FgHiRed).SprintFunc()
-	for _, checker := range balanceCheckers {
-		if checker.Error != nil {
-			fmt.Fprintf(color.Output, "%s: %s\n", checker.Symbol, errorColor(checker.Error))
-		} else {
-			usdBalance := checker.Balance * checker.UsdExchangeRate
-			totalUsdBalance += usdBalance
-
-			cryptoBalanceString := fmt.Sprintf(fmt.Sprintf("%%%df", 13-len(checker.Symbol)), checker.Balance)
-			cryptoTickerSymbolString := fmt.Sprintf(fmt.Sprintf("%%%ds", -maxSymbolLength), checker.Symbol)
-
-			fmt.Fprintf(color.Output, "%s balance: %s %s (in USD: %s, %s%s = %s)\n",
-				checker.Symbol,
-				cryptoColor(cryptoBalanceString),
-				cryptoTickerSymbolString,
-				usdColor(fmt.Sprintf("%7.2f$", usdBalance)),
-				cryptoColor("1"),
-				cryptoTickerSymbolString,
-				usdColor(fmt.Sprintf("%.2f$", checker.UsdExchangeRate)))
-		}
-	}
-	fmt.Println("------------------------------------------")
-	fmt.Fprintf(color.Output, "USD balance: %s\n", usdColor(fmt.Sprintf("%.2f$", totalUsdBalance)))
+	printReports(reports)
 }
 
-func fetchBalances(balanceCheckers []*CryptoBalanceChecker, workerCount int, done chan<- bool) {
-	client := &http.Client{Timeout: 10 * time.Second}
-	jobs := make(chan *CryptoBalanceChecker, workerCount)
-	results := make(chan *CryptoBalanceChecker, len(balanceCheckers))
+func fetchBalanceReports(currenciesConfig []*cryptoBalanceCheckerConfig, currencyInfoFetcherCreator CryptoCurrencyInfoFetcherCreator, workerCount int, results chan<- *CryptoCurrencyBalanceReport) {
+	jobs := make(chan *cryptoBalanceCheckerConfig, workerCount)
 
-	// Start up some workers
-	worker := func(jobs <-chan *CryptoBalanceChecker, results chan<- *CryptoBalanceChecker) {
+	// Define worker
+	worker := func(jobs <-chan *cryptoBalanceCheckerConfig, results chan<- *CryptoCurrencyBalanceReport) {
 		for j := range jobs {
-			j.GetAddressBalances(client, results)
+			if infoFetcher, err := currencyInfoFetcherCreator.Create(j.Symbol); err == nil {
+				FetchInfoForCryptoCurrency(j, infoFetcher, results)
+			} else {
+				results <- nil
+			}
 		}
 	}
+
+	// Start up some workers
 	for index := 0; index < cap(jobs); index++ {
 		go worker(jobs, results)
 	}
 
 	// Kick off a job for each crypto-currency check
-	for _, checker := range balanceCheckers {
-		jobs <- checker
+	for _, currencyConfig := range currenciesConfig {
+		jobs <- currencyConfig
 	}
 	close(jobs)
+}
 
-	// Wait for results
-	for _ = range balanceCheckers {
-		<-results
+func printReports(reports []*CryptoCurrencyBalanceReport) {
+	// Calculate max symbol length for formatting
+	var maxSymbolLength int
+	for _, report := range reports {
+		if length := len(report.Symbol); length > maxSymbolLength {
+			maxSymbolLength = length
+		}
 	}
 
-	done <- true
+	totalUsdBalance := 0.
+	usdColor := color.New(color.FgHiGreen).SprintFunc()
+	cryptoColor := color.New(color.FgHiCyan).SprintFunc()
+	errorColor := color.New(color.FgHiRed).SprintFunc()
+	for _, report := range reports {
+		if report.Error != nil {
+			fmt.Fprintf(color.Output, "%s: %s\n", report.Symbol, errorColor(report.Error))
+		} else {
+			usdBalance := report.Balance * report.UsdExchangeRate
+			totalUsdBalance += usdBalance
+
+			cryptoBalanceString := fmt.Sprintf(fmt.Sprintf("%%%df", 13-len(report.Symbol)), report.Balance)
+			cryptoTickerSymbolString := fmt.Sprintf(fmt.Sprintf("%%%ds", -maxSymbolLength), report.Symbol)
+
+			fmt.Fprintf(color.Output, "%s balance: %s %s (in USD: %s, %s%s = %s)\n",
+				report.Symbol,
+				cryptoColor(cryptoBalanceString),
+				cryptoTickerSymbolString,
+				usdColor(fmt.Sprintf("%7.2f$", usdBalance)),
+				cryptoColor("1"),
+				cryptoTickerSymbolString,
+				usdColor(fmt.Sprintf("%.2f$", report.UsdExchangeRate)))
+		}
+	}
+	fmt.Println("------------------------------------------")
+	fmt.Fprintf(color.Output, "USD balance: %s\n", usdColor(fmt.Sprintf("%.2f$", totalUsdBalance)))
 }

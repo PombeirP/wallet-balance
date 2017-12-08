@@ -12,7 +12,7 @@ type cryptoBalanceCheckerConfig struct {
 	APIKey    string                     `json:"api_key,omitempty"`
 }
 
-func loadConfigFromJSONFile(path string) ([]*CryptoBalanceChecker, error) {
+func loadConfigFromJSONFile(path string) ([]*cryptoBalanceCheckerConfig, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -34,14 +34,9 @@ func loadConfigFromJSONFile(path string) ([]*CryptoBalanceChecker, error) {
 	return loadConfigFromJSON(raw), nil
 }
 
-func loadConfigFromJSON(rawJSON []byte) (checker []*CryptoBalanceChecker) {
+func loadConfigFromJSON(rawJSON []byte) (checker []*cryptoBalanceCheckerConfig) {
 	var currencies []*cryptoBalanceCheckerConfig
 	json.Unmarshal(rawJSON, &currencies)
 
-	checker = make([]*CryptoBalanceChecker, len(currencies))
-	for idx, checkerConfig := range currencies {
-		checker[idx] = NewCryptoBalanceChecker(checkerConfig.Symbol, checkerConfig.APIKey, checkerConfig.Addresses...)
-	}
-
-	return checker
+	return currencies
 }
