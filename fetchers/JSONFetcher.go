@@ -37,8 +37,6 @@ func (fetcher *EtherscanJSONFetcher) Fetch(url string, response interface{}, res
 		return
 	}
 
-	json.Unmarshal([]byte(body), response)
-
 	var untypedResponse map[string]interface{}
 	err = json.Unmarshal([]byte(body), &untypedResponse)
 	if err != nil {
@@ -50,6 +48,8 @@ func (fetcher *EtherscanJSONFetcher) Fetch(url string, response interface{}, res
 		errorsChan <- errors.New(untypedResponse["message"].(string))
 		return
 	}
+
+	json.Unmarshal([]byte(body), response)
 
 	responseReadyChan <- true
 }

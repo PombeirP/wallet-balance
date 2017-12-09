@@ -52,7 +52,7 @@ func fetchBalanceReports(currenciesConfig []*cryptoBalanceCheckerConfig, currenc
 	worker := func(jobs <-chan *cryptoBalanceCheckerConfig, results chan<- *CryptoCurrencyBalanceReport) {
 		for j := range jobs {
 			if infoFetcher, err := currencyInfoFetcherCreator.Create(j.Symbol); err == nil {
-				FetchInfoForCryptoCurrency(j, infoFetcher, results)
+				go FetchInfoForCryptoCurrency(j, infoFetcher, results)
 			} else {
 				results <- nil
 			}
@@ -64,11 +64,10 @@ func fetchBalanceReports(currenciesConfig []*cryptoBalanceCheckerConfig, currenc
 		go worker(jobs, results)
 	}
 
-	// Kick off a job for each crypto-currency check
+	// Wait for all jobs to complete
 	for _, currencyConfig := range currenciesConfig {
 		jobs <- currencyConfig
 	}
-	close(jobs)
 }
 
 func printReports(reports []*CryptoCurrencyBalanceReport) {
@@ -80,6 +79,7 @@ func printReports(reports []*CryptoCurrencyBalanceReport) {
 		}
 	}
 
+	// Print report
 	totalUsdBalance := 0.
 	usdColor := color.New(color.FgHiGreen).SprintFunc()
 	cryptoColor := color.New(color.FgHiCyan).SprintFunc()
