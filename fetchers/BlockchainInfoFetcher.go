@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// BlockchainInfoFetcher fetches the balance and exchange rate of BTC on blockchain.info
+// BlockchainInfoFetcher fetches the balance and exchange rate of BTC on https://blockchain.info/
 type BlockchainInfoFetcher struct {
 	apiFetcher NumberFetcher
 }
@@ -16,7 +16,7 @@ func NewBlockchainInfoFetcher(client HTTPClient) *BlockchainInfoFetcher {
 	return &BlockchainInfoFetcher{numberFetcher}
 }
 
-// FetchBalance retrieves the aggregate balances on blockchain.info for the provided addresses
+// FetchBalance retrieves the aggregate balances on https://blockchain.info/ for the provided addresses
 func (fetcher *BlockchainInfoFetcher) FetchBalance(addresses []string, apiKey string, balance *float64, err *error, done chan<- bool) {
 	balances := make(chan float64)
 	errorsChan := make(chan error)

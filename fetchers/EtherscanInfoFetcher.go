@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// EtherscanInfoFetcher fetches the balance and exchange rate of Ethereum on etherscan.io
+// EtherscanInfoFetcher fetches the balance and exchange rate of Ethereum on https://api.etherscan.io/
 type EtherscanInfoFetcher struct {
 	apiFetcher JSONFetcher
 }
@@ -22,7 +22,7 @@ type etherscanResponseHeader struct {
 	Message string `json:"message,omitempty"`
 }
 
-// FetchBalance retrieves the balance for the specified addresses from etherscan.io
+// FetchBalance retrieves the balance for the specified addresses from https://api.etherscan.io/
 func (fetcher *EtherscanInfoFetcher) FetchBalance(addresses []string, apiKey string, balance *float64, err *error, done chan<- bool) {
 	*balance = 0.
 	*err = nil
@@ -60,7 +60,7 @@ func (fetcher *EtherscanInfoFetcher) FetchBalance(addresses []string, apiKey str
 	return
 }
 
-// FetchExchangeRate retrieves the exchange rate for ETH in `targetCurrency` from etherscan.io
+// FetchExchangeRate retrieves the exchange rate for ETH in `targetCurrency` from https://api.etherscan.io/
 func (fetcher *EtherscanInfoFetcher) FetchExchangeRate(apiKey string, targetCurrency string, exchangeRate *float64, err *error, done chan<- bool) {
 	*exchangeRate = 0.
 

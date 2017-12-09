@@ -2,7 +2,7 @@ package fetchers
 
 import "fmt"
 
-// CryptoidInfoFetcher fetches the balance and exchange rate of several altcoins on chainz.cryptoid.info
+// CryptoidInfoFetcher fetches the balance and exchange rate of several altcoins on https://chainz.cryptoid.info/
 type CryptoidInfoFetcher struct {
 	currency   string
 	apiFetcher NumberFetcher
@@ -14,7 +14,7 @@ func NewCryptoidInfoFetcher(currency string, client HTTPClient) *CryptoidInfoFet
 	return &CryptoidInfoFetcher{currency, numberFetcher}
 }
 
-// FetchBalance retrieves the aggregate balances on chainz.cryptoid.info for the provided addresses
+// FetchBalance retrieves the aggregate balances on https://chainz.cryptoid.info/ for the provided addresses
 func (fetcher *CryptoidInfoFetcher) FetchBalance(addresses []string, apiKey string, balance *float64, err *error, done chan<- bool) {
 	*err = nil
 	*balance = 0.

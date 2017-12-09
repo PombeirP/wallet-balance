@@ -1,3 +1,4 @@
+// Package fetchers provides implementations of fetcher objects for crypto-currency balances and exchange rates
 package fetchers
 
 // CryptoCurrencyBalanceFetcher defines the interface for fetching a crypto-currency balance
