@@ -1,8 +1,6 @@
 package main
 
-import (
-	"github.com/PombeirP/wallet-balance/fetchers"
-)
+import "github.com/PombeirP/wallet-balance/fetchers"
 
 // cryptoCurrencyTickerSymbol represents the ticker symbol for a crypto-currency
 type cryptoCurrencyTickerSymbol string

@@ -1,8 +1,6 @@
 package fetchers
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // CryptoidInfoFetcher fetches the balance and exchange rate of several altcoins on chainz.cryptoid.info
 type CryptoidInfoFetcher struct {
