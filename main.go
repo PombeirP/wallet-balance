@@ -33,7 +33,7 @@ func main() {
 
 	// Wait for results
 	var reports []*CryptoCurrencyBalanceReport
-	for _ = range currenciesConfig {
+	for range currenciesConfig {
 		reports = append(reports, <-results)
 	}
 

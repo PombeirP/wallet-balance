@@ -27,7 +27,7 @@ func (fetcher *CryptoidInfoFetcher) FetchBalance(addresses []string, apiKey stri
 		go fetcher.apiFetcher.Fetch(url, balances, errorsChan)
 	}
 
-	for _ = range addresses {
+	for range addresses {
 		select {
 		case *err = <-errorsChan:
 		case partialBalance := <-balances:
