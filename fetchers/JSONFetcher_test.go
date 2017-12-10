@@ -8,23 +8,38 @@ import (
 	"testing"
 
 	"github.com/PombeirP/wallet-balance/fetchers"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
+type mockHTTPClient struct {
+	mock.Mock
+	fetchers.HTTPClient
+}
+
+func (m *mockHTTPClient) Get(url string) (resp *http.Response, err error) {
+	args := m.Called(url)
+	resp, _ = args.Get(0).(*http.Response)
+	err = args.Error(1)
+	return
+}
+
 func TestEtherscanJSONFetcherFetch(t *testing.T) {
 	cases := []struct {
-		url            string
-		body           string
-		status         string
-		statusCode     int
-		errorMessage   string
-		expectedStatus string
-		expectedValues []string
+		specifiedUrl            string
+		returnedBody            string
+		returnedStatus          string
+		returnedStatusCode      int
+		returnedGetErrorMessage string
+		expectedErrorMessage    string
+		expectedStatus          string
+		expectedValues          []string
 	}{
-		{"https://api.etherscan.io/api?module=account&action=balancemulti&address=0,1&tag=latest", `{"status":"1","message":"OK","result":[{"account":"0","balance":"190.123"},{"account":"1","balance":"100"}]}`, "200", 200, "", "1", []string{"190.123", "100"}},
-		{"https://api.etherscan.io/api?module=account&action=balancemulti&address=1&tag=latest", `{"status":"1","message":"OK","result":[{"account":"1","balance":"100"}]}`, "200", 200, "", "1", []string{"100"}},
-		{"https://api.etherscan.io/api?module=account&action=balancemulti", `{"status":"0","message":"NOTOK","result":"Error!"}`, "200", 200, "NOTOK", "", nil},
-		{"https://api.etherscan.io/api2", `Server Error in '/' Application.`, "404", 404, "Server Error in '/' Application.", "", nil},
+		{"https://api.etherscan.io/api?module=account&action=balancemulti&address=0,1&tag=latest", `{"status":"1","message":"OK","result":[{"account":"0","balance":"190.123"},{"account":"1","balance":"100"}]}`, "200", 200, "", "", "1", []string{"190.123", "100"}},
+		{"https://api.etherscan.io/api?module=account&action=balancemulti&address=1&tag=latest", `{"status":"1","message":"OK","result":[{"account":"1","balance":"100"}]}`, "200", 200, "", "", "1", []string{"100"}},
+		{"https://api.etherscan.io/api?module=account&action=balancemulti", `{"status":"0","message":"NOTOK","result":"Error!"}`, "200", 200, "", "NOTOK", "", nil},
+		{"https://somesite", `Hello!`, "200", 200, "", "invalid character 'H' looking for beginning of value", "", nil},
+		{"https://api.etherscan.io/api2", `Server Error in '/' Application.`, "404", 404, "Server Error in '/' Application.", "Server Error in '/' Application.", "", nil},
 	}
 
 	type etherscanResponseHeader struct {
@@ -46,26 +61,27 @@ func TestEtherscanJSONFetcherFetch(t *testing.T) {
 		clientMock := new(mockHTTPClient)
 
 		err := error(nil)
-		if testCase.errorMessage != "" {
-			err = errors.New(testCase.errorMessage)
+		if testCase.returnedGetErrorMessage != "" {
+			err = errors.New(testCase.returnedGetErrorMessage)
 		}
-		clientMock.On("Get", testCase.url).Return(&http.Response{Status: testCase.status, StatusCode: testCase.statusCode, Body: ioutil.NopCloser(bytes.NewBuffer([]byte(testCase.body)))}, err).Once()
+		clientMock.On("Get", testCase.specifiedUrl).Return(&http.Response{Status: testCase.returnedStatus, StatusCode: testCase.returnedStatusCode, Body: ioutil.NopCloser(bytes.NewBuffer([]byte(testCase.returnedBody)))}, err).Once()
 
 		fetcher := fetchers.NewEtherscanJSONFetcher(clientMock)
 		responseReadyChan := make(chan bool)
 		errorsChan := make(chan error)
 		response := &etherscanAccountBalanceResponse{}
-		go fetcher.Fetch(testCase.url, response, responseReadyChan, errorsChan)
+		go fetcher.Fetch(testCase.specifiedUrl, response, responseReadyChan, errorsChan)
 		select {
 		case _ = <-responseReadyChan:
-			require.Empty(t, testCase.errorMessage, testCase.url)
-			require.Equal(t, testCase.expectedStatus, response.Status, testCase.url)
+			require.Empty(t, testCase.returnedGetErrorMessage, testCase.specifiedUrl)
+			require.Empty(t, testCase.expectedErrorMessage, testCase.specifiedUrl)
+			require.Equal(t, testCase.expectedStatus, response.Status, testCase.specifiedUrl)
 			for idx := range response.Result {
-				require.Equal(t, testCase.expectedValues[idx], response.Result[idx].Balance, testCase.url)
+				require.Equal(t, testCase.expectedValues[idx], response.Result[idx].Balance, testCase.specifiedUrl)
 			}
 		case err := <-errorsChan:
-			require.Error(t, err, testCase.url)
-			require.Equalf(t, testCase.errorMessage, err.Error(), `%s: Expected error message to be "%s"`, testCase.url, testCase.errorMessage)
+			require.Error(t, err, testCase.specifiedUrl)
+			require.Equalf(t, testCase.expectedErrorMessage, err.Error(), `%s: Expected error message to be "%s"`, testCase.specifiedUrl, testCase.expectedErrorMessage)
 		}
 
 		clientMock.AssertExpectations(t)

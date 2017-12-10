@@ -9,9 +9,9 @@ import (
 
 func TestLoadConfigFromJSON(t *testing.T) {
 	cases := []struct {
-		name     string
-		json     string
-		expected []cryptoBalanceCheckerConfig
+		name          string
+		specifiedJson string
+		expected      []cryptoBalanceCheckerConfig
 	}{
 		{"case #1", `[{"symbol": "BTC", "addresses": ["a"]},{"symbol": "DASH","addresses": ["b","c"],"api_key": "apikey1"},{"symbol": "ETH","addresses": ["d"],"api_key": "apikey2"}]`,
 			[]cryptoBalanceCheckerConfig{
@@ -29,7 +29,7 @@ func TestLoadConfigFromJSON(t *testing.T) {
 
 	for _, testCase := range cases {
 		testCaseName := fmt.Sprintf("Test case %s", testCase.name)
-		config := loadConfigFromJSON([]byte(testCase.json))
+		config := loadConfigFromJSON([]byte(testCase.specifiedJson))
 
 		require.NotNil(t, config, testCaseName)
 		require.Len(t, config, len(testCase.expected), "%s: expected %d crypto-currencies", testCaseName, len(testCase.expected))
