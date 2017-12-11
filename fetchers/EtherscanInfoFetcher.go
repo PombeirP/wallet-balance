@@ -25,7 +25,6 @@ type etherscanResponseHeader struct {
 // FetchBalance retrieves the balance for the specified addresses from https://api.etherscan.io/
 func (fetcher *EtherscanInfoFetcher) FetchBalance(addresses []string, apiKey string, balance *float64, err *error, done chan<- bool) {
 	*balance = 0.
-	*err = nil
 
 	type etherscanAccountBalanceResult struct {
 		Account string `json:"account,omitempty"`
@@ -39,18 +38,16 @@ func (fetcher *EtherscanInfoFetcher) FetchBalance(addresses []string, apiKey str
 
 	url := fmt.Sprintf("https://api.etherscan.io/api?module=account&action=balancemulti&address=%s&tag=latest", strings.Join(addresses, ","))
 	response := &etherscanAccountBalanceResponse{}
-	responseReadyChan := make(chan bool)
-	errorsChan := make(chan error)
 
-	go fetcher.apiFetcher.Fetch(url, response, responseReadyChan, errorsChan)
+	*err = fetcher.apiFetcher.Fetch(url, response)
 
-	select {
-	case *err = <-errorsChan:
-	case <-responseReadyChan:
+	if err == nil {
 		for _, responseEntry := range response.Result {
 			partialBalance, err := strconv.ParseFloat(responseEntry.Balance, 64)
 			if err == nil {
 				*balance += partialBalance
+			} else {
+				break
 			}
 		}
 	}
@@ -79,15 +76,11 @@ func (fetcher *EtherscanInfoFetcher) FetchExchangeRate(apiKey string, targetCurr
 		Result *etherscanEthPriceResult `json:"result,omitempty"`
 	}
 	response := &etherscanEthPriceResponse{}
-	responseReadyChan := make(chan bool)
-	errorsChan := make(chan error)
 
 	url := fmt.Sprintf("https://api.etherscan.io/api?module=stats&action=ethprice&apikey=%s", apiKey)
-	go fetcher.apiFetcher.Fetch(url, response, responseReadyChan, errorsChan)
+	*err = fetcher.apiFetcher.Fetch(url, response)
 
-	select {
-	case *err = <-errorsChan:
-	case <-responseReadyChan:
+	if *err == nil {
 		_exchangeRate, _err := strconv.ParseFloat(response.Result.ETHUSD, 64)
 		if _err != nil {
 			*err = _err

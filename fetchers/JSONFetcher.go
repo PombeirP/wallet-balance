@@ -8,7 +8,7 @@ import (
 
 // JSONFetcher defines an interface for fetching JSON responses from web APIs
 type JSONFetcher interface {
-	Fetch(url string, response interface{}, responseReadyChan chan<- bool, errorsChan chan<- error)
+	Fetch(url string, response interface{}) error
 }
 
 // EtherscanJSONFetcher implements the JSONFetcher interface for an HTTPClient to parse an etherscan.io response
@@ -22,10 +22,9 @@ func NewEtherscanJSONFetcher(client HTTPClient) *EtherscanJSONFetcher {
 }
 
 // Fetch calls a web API and decodes the JSON response
-func (fetcher *EtherscanJSONFetcher) Fetch(url string, response interface{}, responseReadyChan chan<- bool, errorsChan chan<- error) {
+func (fetcher *EtherscanJSONFetcher) Fetch(url string, response interface{}) (err error) {
 	resp, err := fetcher.client.Get(url)
 	if err != nil {
-		errorsChan <- err
 		return
 	}
 
@@ -33,23 +32,21 @@ func (fetcher *EtherscanJSONFetcher) Fetch(url string, response interface{}, res
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		errorsChan <- err
 		return
 	}
 
 	var untypedResponse map[string]interface{}
 	err = json.Unmarshal([]byte(body), &untypedResponse)
 	if err != nil {
-		errorsChan <- err
 		return
 	}
 
 	if untypedResponse["status"].(string) != "1" {
-		errorsChan <- errors.New(untypedResponse["message"].(string))
+		err = errors.New(untypedResponse["message"].(string))
 		return
 	}
 
 	json.Unmarshal([]byte(body), response)
 
-	responseReadyChan <- true
+	return
 }

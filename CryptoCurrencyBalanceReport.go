@@ -43,7 +43,7 @@ func FetchInfoForCryptoCurrency(config *cryptoBalanceCheckerConfig, infoFetcher 
 	<-balancesFetched
 
 	err := err1
-	if err2 != nil && err1 == nil {
+	if err1 == nil && err2 != nil {
 		err = err2
 	}
 	report = NewCryptoCurrencyBalanceReport(config.Symbol, balance, usdExchangeRate, err)

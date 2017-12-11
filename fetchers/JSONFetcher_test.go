@@ -60,26 +60,23 @@ func TestEtherscanJSONFetcherFetch(t *testing.T) {
 	for _, testCase := range cases {
 		clientMock := new(mockHTTPClient)
 
-		err := error(nil)
+		returnedErr := error(nil)
 		if testCase.returnedGetErrorMessage != "" {
-			err = errors.New(testCase.returnedGetErrorMessage)
+			returnedErr = errors.New(testCase.returnedGetErrorMessage)
 		}
-		clientMock.On("Get", testCase.specifiedUrl).Return(&http.Response{Status: testCase.returnedStatus, StatusCode: testCase.returnedStatusCode, Body: ioutil.NopCloser(bytes.NewBuffer([]byte(testCase.returnedBody)))}, err).Once()
+		clientMock.On("Get", testCase.specifiedUrl).Return(&http.Response{Status: testCase.returnedStatus, StatusCode: testCase.returnedStatusCode, Body: ioutil.NopCloser(bytes.NewBuffer([]byte(testCase.returnedBody)))}, returnedErr).Once()
 
 		fetcher := fetchers.NewEtherscanJSONFetcher(clientMock)
-		responseReadyChan := make(chan bool)
-		errorsChan := make(chan error)
 		response := &etherscanAccountBalanceResponse{}
-		go fetcher.Fetch(testCase.specifiedUrl, response, responseReadyChan, errorsChan)
-		select {
-		case _ = <-responseReadyChan:
+		err := fetcher.Fetch(testCase.specifiedUrl, response)
+		if err == nil {
 			require.Empty(t, testCase.returnedGetErrorMessage, testCase.specifiedUrl)
 			require.Empty(t, testCase.expectedErrorMessage, testCase.specifiedUrl)
 			require.Equal(t, testCase.expectedStatus, response.Status, testCase.specifiedUrl)
 			for idx := range response.Result {
 				require.Equal(t, testCase.expectedValues[idx], response.Result[idx].Balance, testCase.specifiedUrl)
 			}
-		case err := <-errorsChan:
+		} else {
 			require.Error(t, err, testCase.specifiedUrl)
 			require.Equalf(t, testCase.expectedErrorMessage, err.Error(), `%s: Expected error message to be "%s"`, testCase.specifiedUrl, testCase.expectedErrorMessage)
 		}

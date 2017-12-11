@@ -52,14 +52,11 @@ func TestWebNumberFetcherFetch(t *testing.T) {
 		clientMock.On("Get", testCase.specifiedURL).Return(&http.Response{Status: testCase.returnedStatus, StatusCode: testCase.returnedStatusCode, Body: ioutil.NopCloser(bytes.NewBuffer([]byte(testCase.returnedBody)))}, err).Once()
 
 		fetcher := NewWebNumberFetcher(clientMock)
-		resultsChan := make(chan float64)
-		errorsChan := make(chan error)
-		go fetcher.Fetch(testCase.specifiedURL, resultsChan, errorsChan)
-		select {
-		case result := <-resultsChan:
+		result, err := fetcher.Fetch(testCase.specifiedURL)
+		if err == nil {
 			require.Empty(t, testCase.returnedGetErrorMessage)
 			require.Equal(t, testCase.expectedValue, result)
-		case err := <-errorsChan:
+		} else {
 			require.Error(t, err, testCase.specifiedURL)
 			require.Equalf(t, testCase.expectedErrorMessage, err.Error(), `%s: Expected error message to be "%s"`, testCase.specifiedURL, testCase.expectedErrorMessage)
 		}

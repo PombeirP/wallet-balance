@@ -18,15 +18,9 @@ func NewBlockchainInfoFetcher(client HTTPClient) *BlockchainInfoFetcher {
 
 // FetchBalance retrieves the aggregate balances on https://blockchain.info/ for the provided addresses
 func (fetcher *BlockchainInfoFetcher) FetchBalance(addresses []string, apiKey string, balance *float64, err *error, done chan<- bool) {
-	balances := make(chan float64)
-	errorsChan := make(chan error)
-
 	url := fmt.Sprintf("https://blockchain.info/q/addressbalance/%s", strings.Join(addresses, "%7C" /*|*/))
-	go fetcher.apiFetcher.Fetch(url, balances, errorsChan)
 
-	select {
-	case *err = <-errorsChan:
-	case *balance = <-balances:
+	if *balance, *err = fetcher.apiFetcher.Fetch(url); *err == nil {
 		*balance = *balance / 100000000.
 	}
 
@@ -35,18 +29,10 @@ func (fetcher *BlockchainInfoFetcher) FetchBalance(addresses []string, apiKey st
 
 // FetchExchangeRate retrieves the exchange rate for BTC in `targetCurrency`
 func (fetcher *BlockchainInfoFetcher) FetchExchangeRate(apiKey string, targetCurrency string, exchangeRate *float64, err *error, done chan<- bool) {
-	*exchangeRate = 0.
-
-	exchangeRates := make(chan float64)
-	errorsChan := make(chan error)
-
 	url := fmt.Sprintf("https://blockchain.info/tobtc?currency=%s&value=1", targetCurrency)
-	go fetcher.apiFetcher.Fetch(url, exchangeRates, errorsChan)
 
-	select {
-	case *err = <-errorsChan:
-	case invExchangeRate := <-exchangeRates:
-		*exchangeRate = 1. / invExchangeRate
+	if *exchangeRate, *err = fetcher.apiFetcher.Fetch(url); *err == nil {
+		*exchangeRate = 1. / *exchangeRate
 	}
 
 	done <- true

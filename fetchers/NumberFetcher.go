@@ -8,7 +8,7 @@ import (
 
 // NumberFetcher defines an interface for fetching numeric body responses from web APIs
 type NumberFetcher interface {
-	Fetch(url string, resultChan chan<- float64, errorsChan chan<- error)
+	Fetch(url string) (result float64, err error)
 }
 
 // WebNumberFetcher implements the NumberFetcher interface for an HTTPClient
@@ -22,10 +22,9 @@ func NewWebNumberFetcher(client HTTPClient) *WebNumberFetcher {
 }
 
 // Fetch calls a web API and decodes the JSON response
-func (fetcher *WebNumberFetcher) Fetch(url string, resultChan chan<- float64, errorsChan chan<- error) {
+func (fetcher *WebNumberFetcher) Fetch(url string) (result float64, err error) {
 	resp, err := fetcher.client.Get(url)
 	if err != nil {
-		errorsChan <- err
 		return
 	}
 
@@ -33,26 +32,21 @@ func (fetcher *WebNumberFetcher) Fetch(url string, resultChan chan<- float64, er
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		errorsChan <- err
 		return
 	}
 
 	bodyString := string(body)
 	if resp.StatusCode >= 300 {
 		if len(bodyString) > 0 {
-			errorsChan <- errors.New(bodyString)
+			err = errors.New(bodyString)
 		} else {
-			errorsChan <- errors.New(resp.Status)
+			err = errors.New(resp.Status)
 		}
 
 		return
 	}
 
-	value, err := strconv.ParseFloat(bodyString, 64)
-	if err != nil {
-		errorsChan <- err
-		return
-	}
+	result, err = strconv.ParseFloat(bodyString, 64)
 
-	resultChan <- value
+	return
 }

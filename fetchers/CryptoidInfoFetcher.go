@@ -19,18 +19,25 @@ func (fetcher *CryptoidInfoFetcher) FetchBalance(addresses []string, apiKey stri
 	*err = nil
 	*balance = 0.
 
-	balances := make(chan float64)
+	balancesChan := make(chan float64)
 	errorsChan := make(chan error)
 
 	for _, address := range addresses {
 		url := fmt.Sprintf("https://chainz.cryptoid.info/%s/api.dws?q=getbalance&key=%s&a=%s", fetcher.currency, apiKey, address)
-		go fetcher.apiFetcher.Fetch(url, balances, errorsChan)
+		go func() {
+			balance, err := fetcher.apiFetcher.Fetch(url)
+			if err == nil {
+				balancesChan <- balance
+			} else {
+				errorsChan <- err
+			}
+		}()
 	}
 
 	for range addresses {
 		select {
 		case *err = <-errorsChan:
-		case partialBalance := <-balances:
+		case partialBalance := <-balancesChan:
 			*balance += partialBalance
 		}
 	}
@@ -40,18 +47,8 @@ func (fetcher *CryptoidInfoFetcher) FetchBalance(addresses []string, apiKey stri
 
 // FetchExchangeRate retrieves the exchange rate for BTC in `targetCurrency`
 func (fetcher *CryptoidInfoFetcher) FetchExchangeRate(apiKey string, targetCurrency string, exchangeRate *float64, err *error, done chan<- bool) {
-	*exchangeRate = 0.
-
-	exchangeRates := make(chan float64)
-	errorsChan := make(chan error)
-
 	url := fmt.Sprintf("https://chainz.cryptoid.info/%s/api.dws?q=ticker.%s&key=%s", fetcher.currency, targetCurrency, apiKey)
-	go fetcher.apiFetcher.Fetch(url, exchangeRates, errorsChan)
-
-	select {
-	case *err = <-errorsChan:
-	case *exchangeRate = <-exchangeRates:
-	}
+	*exchangeRate, *err = fetcher.apiFetcher.Fetch(url)
 
 	done <- true
 }
