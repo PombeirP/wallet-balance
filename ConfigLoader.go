@@ -31,12 +31,11 @@ func loadConfigFromJSONFile(path string) ([]*cryptoBalanceCheckerConfig, error) 
 		return nil, err
 	}
 
-	return loadConfigFromJSON(raw), nil
+	return loadConfigFromJSON(raw)
 }
 
-func loadConfigFromJSON(rawJSON []byte) (checker []*cryptoBalanceCheckerConfig) {
-	var currencies []*cryptoBalanceCheckerConfig
-	json.Unmarshal(rawJSON, &currencies)
+func loadConfigFromJSON(rawJSON []byte) (currencies []*cryptoBalanceCheckerConfig, err error) {
+	err = json.Unmarshal(rawJSON, &currencies)
 
-	return currencies
+	return
 }
