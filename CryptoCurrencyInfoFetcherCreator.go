@@ -48,7 +48,7 @@ func (creator *CryptoCurrencyInfoHTTPFetcherCreator) Create(symbol cryptoCurrenc
 	}
 
 	if infoFetcher == nil {
-		err = fmt.Errorf("Unknown crypto-currency %s", symbol)
+		err = fmt.Errorf("unknown crypto-currency %s", symbol)
 	}
 
 	return

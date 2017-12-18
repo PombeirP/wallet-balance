@@ -38,8 +38,8 @@ func TestFetchInfoForCryptoCurrency(t *testing.T) {
 	}{
 		{"BTC", btc, "random_api_key#1", []string{"a", "b"}, nil, nil, 1000., 99., ""},
 		{"ETH", eth, "random_api_key#2", []string{"d"}, nil, nil, 50., 3., ""},
-		{"balance error is propagated", eth, "random_api_key#2", []string{"d"}, errors.New("Balance retrieval error"), nil, 0., 4., "Balance retrieval error"},
-		{"exchange rate error is propagated", eth, "random_api_key#2", []string{"d"}, nil, errors.New("Exchange rate retrieval error"), 0., 4., "Exchange rate retrieval error"},
+		{"balance error is propagated", eth, "random_api_key#2", []string{"d"}, errors.New("balance retrieval error"), nil, 0., 4., "Balance retrieval error"},
+		{"exchange rate error is propagated", eth, "random_api_key#2", []string{"d"}, nil, errors.New("exchange rate retrieval error"), 0., 4., "Exchange rate retrieval error"},
 	}
 
 	for _, testCase := range cases {
