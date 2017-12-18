@@ -94,13 +94,12 @@ func printReports(reports []*CryptoCurrencyBalanceReport) {
 			cryptoBalanceString := fmt.Sprintf(fmt.Sprintf("%%%df", 13-len(report.Symbol)), report.Balance)
 			cryptoTickerSymbolString := fmt.Sprintf(fmt.Sprintf("%%%ds", -maxSymbolLength), report.Symbol)
 
-			fmt.Fprintf(color.Output, "%s balance: %s %s (in USD: %s, %s%s = %s)\n",
+			fmt.Fprintf(color.Output, "%[1]s balance: %[2]s %[3]s (in USD: %[4]s, %[5]s%[3]s = %[6]s)\n",
 				report.Symbol,
 				cryptoColor(cryptoBalanceString),
 				cryptoTickerSymbolString,
 				usdColor(fmt.Sprintf("%7.2f$", usdBalance)),
 				cryptoColor("1"),
-				cryptoTickerSymbolString,
 				usdColor(fmt.Sprintf("%.2f$", report.UsdExchangeRate)))
 		}
 	}
