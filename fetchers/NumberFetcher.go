@@ -11,18 +11,18 @@ type NumberFetcher interface {
 	Fetch(url string) (result float64, err error)
 }
 
-// WebNumberFetcher implements the NumberFetcher interface for an HTTPClient
-type WebNumberFetcher struct {
+// webNumberFetcher implements the NumberFetcher interface for an HTTPClient
+type webNumberFetcher struct {
 	client HTTPClient
 }
 
-// NewWebNumberFetcher returns an initialized instance of WebNumberFetcher
-func NewWebNumberFetcher(client HTTPClient) *WebNumberFetcher {
-	return &WebNumberFetcher{client}
+// NewWebNumberFetcher returns a NumberFetcher implementation that works on an HTTPClient
+func NewWebNumberFetcher(client HTTPClient) NumberFetcher {
+	return &webNumberFetcher{client}
 }
 
 // Fetch calls a web API and decodes the JSON response
-func (fetcher *WebNumberFetcher) Fetch(url string) (result float64, err error) {
+func (fetcher *webNumberFetcher) Fetch(url string) (result float64, err error) {
 	resp, err := fetcher.client.Get(url)
 	if err != nil {
 		return

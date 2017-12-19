@@ -11,18 +11,18 @@ type JSONFetcher interface {
 	Fetch(url string, response interface{}) error
 }
 
-// EtherscanJSONFetcher implements the JSONFetcher interface for an HTTPClient to parse an etherscan.io response
-type EtherscanJSONFetcher struct {
+// etherscanJSONFetcher implements the JSONFetcher interface for an HTTPClient to parse an etherscan.io response
+type etherscanJSONFetcher struct {
 	client HTTPClient
 }
 
-// NewEtherscanJSONFetcher returns an initialized instance of EtherscanJSONFetcher
-func NewEtherscanJSONFetcher(client HTTPClient) *EtherscanJSONFetcher {
-	return &EtherscanJSONFetcher{client}
+// NewEtherscanJSONFetcher returns a implementation that works on an HTTPClient
+func NewEtherscanJSONFetcher(client HTTPClient) JSONFetcher {
+	return &etherscanJSONFetcher{client}
 }
 
 // Fetch calls a web API and decodes the JSON response
-func (fetcher *EtherscanJSONFetcher) Fetch(url string, response interface{}) (err error) {
+func (fetcher *etherscanJSONFetcher) Fetch(url string, response interface{}) (err error) {
 	resp, err := fetcher.client.Get(url)
 	if err != nil {
 		return
