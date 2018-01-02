@@ -41,12 +41,13 @@ func (fetcher *EtherscanInfoFetcher) FetchBalance(addresses []string, apiKey str
 
 	*err = fetcher.apiFetcher.Fetch(url, response)
 
-	if err == nil {
+	if *err == nil {
 		for _, responseEntry := range response.Result {
-			partialBalance, err := strconv.ParseFloat(responseEntry.Balance, 64)
-			if err == nil {
-				*balance += partialBalance
+			partialBalance, errParse := strconv.ParseFloat(responseEntry.Balance, 64)
+			if errParse == nil {
+				*balance += partialBalance / 1000000000000000000.
 			} else {
+				*err = errParse
 				break
 			}
 		}
