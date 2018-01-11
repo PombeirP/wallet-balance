@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // EtherscanInfoFetcher fetches the balance and exchange rate of Ethereum on https://api.etherscan.io/
@@ -23,7 +24,9 @@ type etherscanResponseHeader struct {
 }
 
 // FetchBalance retrieves the balance for the specified addresses from https://api.etherscan.io/
-func (fetcher *EtherscanInfoFetcher) FetchBalance(addresses []string, apiKey string, balance *float64, err *error, done chan<- bool) {
+func (fetcher *EtherscanInfoFetcher) FetchBalance(addresses []string, apiKey string, balance *float64, err *error, done *sync.WaitGroup) {
+	defer done.Done()
+
 	*balance = 0.
 
 	type etherscanAccountBalanceResult struct {
@@ -52,19 +55,16 @@ func (fetcher *EtherscanInfoFetcher) FetchBalance(addresses []string, apiKey str
 			}
 		}
 	}
-
-	done <- true
-
-	return
 }
 
 // FetchExchangeRate retrieves the exchange rate for ETH in `targetCurrency` from https://api.etherscan.io/
-func (fetcher *EtherscanInfoFetcher) FetchExchangeRate(apiKey string, targetCurrency string, exchangeRate *float64, err *error, done chan<- bool) {
+func (fetcher *EtherscanInfoFetcher) FetchExchangeRate(apiKey string, targetCurrency string, exchangeRate *float64, err *error, done *sync.WaitGroup) {
+	defer done.Done()
+
 	*exchangeRate = 0.
 
 	if targetCurrency != "usd" {
 		*err = fmt.Errorf("%s is not supported as target currency for ETH, only USD at the moment", targetCurrency)
-		done <- true
 		return
 	}
 
@@ -89,6 +89,4 @@ func (fetcher *EtherscanInfoFetcher) FetchExchangeRate(apiKey string, targetCurr
 			*exchangeRate = _exchangeRate
 		}
 	}
-
-	done <- true
 }

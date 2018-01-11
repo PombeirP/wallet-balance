@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -12,15 +13,15 @@ type MockCryptoCurrencyInfoFetcher struct {
 	mock.Mock
 }
 
-func (m *MockCryptoCurrencyInfoFetcher) FetchBalance(addresses []string, apiKey string, balance *float64, err *error, done chan<- bool) {
+func (m *MockCryptoCurrencyInfoFetcher) FetchBalance(addresses []string, apiKey string, balance *float64, err *error, done *sync.WaitGroup) {
 	m.Called(addresses, apiKey, balance, err, done)
-	done <- true
+	done.Done()
 	return
 }
 
-func (m *MockCryptoCurrencyInfoFetcher) FetchExchangeRate(apiKey string, targetCurrency string, exchangeRate *float64, err *error, done chan<- bool) {
+func (m *MockCryptoCurrencyInfoFetcher) FetchExchangeRate(apiKey string, targetCurrency string, exchangeRate *float64, err *error, done *sync.WaitGroup) {
 	m.Called(apiKey, targetCurrency, exchangeRate, err, done)
-	done <- true
+	done.Done()
 	return
 }
 

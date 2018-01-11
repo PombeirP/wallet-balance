@@ -3,6 +3,7 @@ package fetchers
 import (
 	"fmt"
 	"strings"
+	"sync"
 )
 
 // BlockchainInfoFetcher fetches the balance and exchange rate of BTC on https://blockchain.info/
@@ -17,23 +18,23 @@ func NewBlockchainInfoFetcher(client HTTPClient) *BlockchainInfoFetcher {
 }
 
 // FetchBalance retrieves the aggregate balances on https://blockchain.info/ for the provided addresses
-func (fetcher *BlockchainInfoFetcher) FetchBalance(addresses []string, apiKey string, balance *float64, err *error, done chan<- bool) {
+func (fetcher *BlockchainInfoFetcher) FetchBalance(addresses []string, apiKey string, balance *float64, err *error, done *sync.WaitGroup) {
 	url := fmt.Sprintf("https://blockchain.info/q/addressbalance/%s", strings.Join(addresses, "%7C" /*|*/))
 
 	if *balance, *err = fetcher.apiFetcher.Fetch(url); *err == nil {
 		*balance = *balance / 100000000.
 	}
 
-	done <- true
+	done.Done()
 }
 
 // FetchExchangeRate retrieves the exchange rate for BTC in `targetCurrency`
-func (fetcher *BlockchainInfoFetcher) FetchExchangeRate(apiKey string, targetCurrency string, exchangeRate *float64, err *error, done chan<- bool) {
+func (fetcher *BlockchainInfoFetcher) FetchExchangeRate(apiKey string, targetCurrency string, exchangeRate *float64, err *error, done *sync.WaitGroup) {
 	url := fmt.Sprintf("https://blockchain.info/tobtc?currency=%s&value=1", targetCurrency)
 
 	if *exchangeRate, *err = fetcher.apiFetcher.Fetch(url); *err == nil {
 		*exchangeRate = 1. / *exchangeRate
 	}
 
-	done <- true
+	done.Done()
 }

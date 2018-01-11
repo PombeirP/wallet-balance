@@ -1,6 +1,7 @@
 package main
 
 import "github.com/PombeirP/wallet-balance/fetchers"
+import "sync"
 
 // cryptoCurrencyTickerSymbol represents the ticker symbol for a crypto-currency
 type cryptoCurrencyTickerSymbol string
@@ -29,18 +30,17 @@ func NewCryptoCurrencyBalanceReport(symbol cryptoCurrencyTickerSymbol, balance, 
 
 // FetchInfoForCryptoCurrency retrieves the exchange rate and the aggregate balances for the provided addresses
 func FetchInfoForCryptoCurrency(config *cryptoBalanceCheckerConfig, infoFetcher fetchers.CryptoCurrencyInfoFetcher, done chan<- *CryptoCurrencyBalanceReport) {
-	balancesFetched := make(chan bool)
-	exchangeRateFetched := make(chan bool)
+	infoFetched := sync.WaitGroup{}
+	infoFetched.Add(2)
 
 	var report *CryptoCurrencyBalanceReport
 	var balance, usdExchangeRate float64
 	var err1, err2 error
 
-	go infoFetcher.FetchBalance(config.Addresses, config.APIKey, &balance, &err1, balancesFetched)
-	go infoFetcher.FetchExchangeRate(config.APIKey, "usd", &usdExchangeRate, &err2, exchangeRateFetched)
+	go infoFetcher.FetchBalance(config.Addresses, config.APIKey, &balance, &err1, &infoFetched)
+	go infoFetcher.FetchExchangeRate(config.APIKey, "usd", &usdExchangeRate, &err2, &infoFetched)
 
-	<-exchangeRateFetched
-	<-balancesFetched
+	infoFetched.Wait()
 
 	err := err1
 	if err1 == nil && err2 != nil {
