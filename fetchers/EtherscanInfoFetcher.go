@@ -7,6 +7,10 @@ import (
 	"sync"
 )
 
+const (
+	wei = 1000000000000000000. // 10^18
+)
+
 // EtherscanInfoFetcher fetches the balance and exchange rate of Ethereum on https://api.etherscan.io/
 type EtherscanInfoFetcher struct {
 	apiFetcher JSONFetcher
@@ -48,7 +52,7 @@ func (fetcher *EtherscanInfoFetcher) FetchBalance(addresses []string, apiKey str
 		for _, responseEntry := range response.Result {
 			partialBalance, errParse := strconv.ParseFloat(responseEntry.Balance, 64)
 			if errParse == nil {
-				*balance += partialBalance / 1000000000000000000.
+				*balance += partialBalance / wei
 			} else {
 				*err = errParse
 				break

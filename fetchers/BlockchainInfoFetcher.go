@@ -6,6 +6,10 @@ import (
 	"sync"
 )
 
+const (
+	satoshi = 100000000. // 10^8
+)
+
 // BlockchainInfoFetcher fetches the balance and exchange rate of BTC on https://blockchain.info/
 type BlockchainInfoFetcher struct {
 	apiFetcher NumberFetcher
@@ -22,7 +26,7 @@ func (fetcher *BlockchainInfoFetcher) FetchBalance(addresses []string, apiKey st
 	url := fmt.Sprintf("https://blockchain.info/q/addressbalance/%s", strings.Join(addresses, "%7C" /*|*/))
 
 	if *balance, *err = fetcher.apiFetcher.Fetch(url); *err == nil {
-		*balance = *balance / 100000000.
+		*balance = *balance / satoshi
 	}
 
 	done.Done()
